@@ -7,10 +7,7 @@ from peerplays.block import Block
 
 
 def interpetringJson(data1):
-    print("in11111111111111111111")
     pprint(len(data1["transactions"]))
-#    ls2 =json.dumps(data1["transactions"])
-    print("sssssssssssssssssssssssSSS")
     pprint((data1["transactions"][0]["operations"][0][1]["from"])) 
 
 
@@ -45,7 +42,6 @@ if sys.argv[3] == "witness" or sys.argv[3] == "w":
             #print ((ls1["transactions"]));
             with open('transactions/'+ str(startBlockIndex) +'.json', 'w') as outfile:
                 json.dump(ls1, outfile)
-            interpetringJson(ls1)
         with open('logs/logFile.log', "a") as logfile:
             logfile.write("Block number "+str(startBlockIndex)+" from witness\n")
         print ("Block number "+str(startBlockIndex)+" from witness\n")
@@ -64,7 +60,6 @@ else:
             with open('transactions/'+ str(startBlockIndex) +'.json') as data_file:    
                   data = json.load(data_file)
                   pprint(data)
-            interpetringJson(data)
         with open('logs/logFile.log', "a") as logfile:
                 logfile.write("Block number "+str(startBlockIndex)+" from directory\n")
         print ("Block number "+str(startBlockIndex)+" from witness\n")
