@@ -1,0 +1,26 @@
+Output:
+  csv
+Mapping:
+  AllTransaction:
+        # block num
+        # date & time
+        Operations : "['operations'][0][0]"
+        # TBD link to json php disply script
+        # TBD link to other table grim Operations search
+  transfer:
+        # block num
+        # date & time
+        From : "['operations'][0][1]['from']"
+        to :   "['operations'][0][1]['to']" 
+        asset_id : "['operations'][0][1]['amount']['asset_id']"
+        amount : "['operations'][0][1]['amount']['amount']"
+        # TBD link to json php disply script
+  account_create:
+        # block num
+        # date & time
+        registrar : "['operations'][0][1]['registrar']"
+        referrer : "['operations'][0][1]['referrer']"
+        referrer_percent : "['operations'][0][1]['referrer_percent']"
+        name : "['operations'][0][1]['name']"
+        voting_account : "['operations'][0][1]['options']['voting_account']"
+        # TBD link to json php disply scriptP         
