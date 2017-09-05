@@ -1,0 +1,32 @@
+Output:
+  DB:
+       Type: MySQL  # or csv
+       #only if type is sql
+       host : 'your host'
+       user : 'your user' 
+       password : 'your password'
+       db : 'your data base'
+Mapping:
+  all_transaction:
+        # block num
+        # date & time
+        Operations : "['operations'][0][0]" # 255
+        # TBD link to json php disply script
+        # TBD link to other table grim Operations search
+  transfer:
+        # block num
+        # date & time
+        From : "['operations'][0][1]['from']" # 99
+        to :   "['operations'][0][1]['to']" # 99
+        asset_id : "['operations'][0][1]['amount']['asset_id']"
+        amount : "['operations'][0][1]['amount']['amount']"
+        # TBD link to json php disply script
+  account_create:
+        # block num
+        # date & time
+        registrar : "['operations'][0][1]['registrar']" # 99
+        referrer : "['operations'][0][1]['referrer']" # 99
+        referrer_percent : "['operations'][0][1]['referrer_percent']"
+        name : "['operations'][0][1]['name']" # 99
+        voting_account : "['operations'][0][1]['options']['voting_account']"  # 99
+        # TBD link to json php disply scriptP         

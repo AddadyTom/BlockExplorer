@@ -3,6 +3,7 @@ import os.path
 import sys
 import json
 import csv
+import pymysql.cursors
 from pprint import pprint
 from peerplays import PeerPlays
 from peerplays.block import Block
@@ -11,28 +12,129 @@ def interpetringJson(data1):
     pprint(len(data1["transactions"]))
     pprint((data1["transactions"][0]["operations"][0][1]["from"])) 
 
+
+def writeTransToMySql(data,connectionDetails):
+    connection = pymysql.connect(host=connectionDetails["host"],
+            user=connectionDetails["user"],
+            password=connectionDetails["password"],
+            db=connectionDetails["db"],
+            charset='utf8',
+            cursorclass=pymysql.cursors.DictCursor)
+    i = 0 
+    for trans in data["transactions"]:
+                dateTime = data['transactions'][i]['expiration']
+                #writing all transactions any way
+                valuesList = [startBlockIndex]
+                for param in cfg["Mapping"]["all_transaction"]:
+                        exec("jsonToBeWrriten[param]"+ " = data['transactions'][i]" + cfg["Mapping"]["all_transaction"][param])
+                        valuesList.append(ops[int(jsonToBeWrriten['Operations'])])
+                jsonToBeWrriten["blockNumber"] = startBlockIndex 
+                #valuesList.append(jsonToBeWrriten["blockNumber"])
+            
+                #writing to data base
+                try:
+                    with connection.cursor() as cursor:
+                    # Create a new record
+                    #sql= "INSERT INTO `transfer` (`from`, `to`, `asset_id`, `amount`) VALUES (%s, %s, %s, %s)"
+                        sql= "INSERT INTO `all_transaction` (`Operations`, `blockNumber`, `time`) VALUES (%s, %s, %s)"
+                        cursor.execute(sql, (ops[int(jsonToBeWrriten['Operations'])],startBlockIndex,dateTime))
+                        print ("i trien in mysql insertion to all_tracsion done %d" % (i))
+                    connection.commit()
+                finally:
+                    stam = 5
+                    #connection.close()
+               
+                """
+                writing to csv
+                with open('logs/all_transaction.csv','a') as f:
+                        writer=csv.writer(f)
+                        pprint (valuesList)
+                        writer.writerow(valuesList)
+                pprint (jsonToBeWrriten[param])
+				"""
+
+
+
+
+                #now writing the rest of the transaction that is not "all transactions"(account creat for example)
+                if ops[int(jsonToBeWrriten['Operations'])] in cfg["Mapping"]:
+                    sql= "INSERT INTO `"+ ops[int(jsonToBeWrriten['Operations'])] + '` (`blockNumber`, `time'
+                    valuesList = [startBlockIndex,dateTime]
+                    titleList = ["BlockNumber", "DateAndTime"]
+                    toAppend = "%s, %s"
+                    for param in cfg["Mapping"][ops[int(jsonToBeWrriten['Operations'])]]:
+                        sql += '`, `' +  param
+                        toAppend += ", %s"
+                        titleList.append(param)
+                        exec("valuesList.append("+ "data['transactions'][i]" + cfg["Mapping"][ops[int(jsonToBeWrriten['Operations'])]][param]+")")
+                    sql += '`) VALUES (' + toAppend + ')'
+                    print ("sql we will use for spesific:")
+                    print (sql)
+                    try:
+                        with connection.cursor() as cursor:
+                            # Create a new record
+                            #sql= "INSERT INTO `transfer` (`from`, `to`, `asset_id`, `amount`) VALUES (%s, %s, %s, %s)"
+                            str1 = "'" + "','".join(map(str, valuesList)) + "'"
+                          #  print (sql)
+                            print ("list of values we will use:")
+                            print (valuesList)
+                          #  print (str1)
+                            #sys.exit()
+                            cursor.execute(sql,(valuesList))
+                            print ("insertion in mysql spesific done")
+                        connection.commit()
+                    finally:
+                        stam = 5
+                        #connection.close()
+
+
+                    """ 
+                    #checks if need to write a new file or to append 
+                    if (int(jsonToBeWrriten['Operations']) in alreadyWas):
+                            with open("logs/" + ops[int(jsonToBeWrriten['Operations'])] + ".csv",'a') as f:
+                                writer=csv.writer(f)
+                                pprint (valuesList)
+                                writer.writerow(valuesList)
+                    else :
+                        with open("logs/" + ops[int(jsonToBeWrriten['Operations'])] + ".csv",'w') as f:
+                            writer=csv.writer(f)
+                            pprint (valuesList)
+                            writer.writerow(titleList)   
+                            writer.writerow(valuesList)  
+ 
+                    alreadyWas.append(int(jsonToBeWrriten['Operations']))
+                    """
+                i+=1
+    connection.close()
+    
+
+
+
+
+
+
+
+
 def writeTransToCsv(data):
     i = 0 
     for trans in data["transactions"]:
                 dateTime = data['transactions'][i]['expiration']
-                #typeOf = ""
-                
+                #writing all transactions any way
                 valuesList = [startBlockIndex]
-                for param in cfg["Mapping"]["AllTransaction"]:
-                    exec("jsonToBeWrriten[param]"+ " = data['transactions'][i]" + cfg["Mapping"]["AllTransaction"][param])
-#                    valuesList.append(jsonToBeWrriten[param])
+                for param in cfg["Mapping"]["all_transaction"]:
+                    exec("jsonToBeWrriten[param]"+ " = data['transactions'][i]" + cfg["Mapping"]["all_transaction"][param])
                     valuesList.append(ops[int(jsonToBeWrriten['Operations'])])
                 jsonToBeWrriten["blockNumber"] = startBlockIndex 
                 #valuesList.append(jsonToBeWrriten["blockNumber"])
                 """
                 writing to csv
                 """
-                with open('logs/AllTransaction.csv','a') as f:
+                with open('logs/all_transaction.csv','a') as f:
                         writer=csv.writer(f)
                         pprint (valuesList)
                         writer.writerow(valuesList)
                 pprint (jsonToBeWrriten[param])
-
+                #now writing the rest of the transaction that is not "all transactions"(account creat for example)
                 if ops[int(jsonToBeWrriten['Operations'])] in cfg["Mapping"]:
                     valuesList = [startBlockIndex,dateTime]
                     titleList = ["BlockNumber", "DateAndTime"]
@@ -141,7 +243,7 @@ if (len(sys.argv) != 4):
 
 with open("configuration.yml", 'r') as ymlfile:
       cfg = yaml.load(ymlfile)
-kindOfOutPut = cfg["Output"]#csv or mysql
+kindOfOutPut = cfg["Output"]["DB"]["Type"]#csv or mysql
 
 #reading the blocks from witness 
 if sys.argv[3] == "witness" or sys.argv[3] == "w":
@@ -161,7 +263,12 @@ if sys.argv[3] == "witness" or sys.argv[3] == "w":
         ls1 = json.loads(ls);
         if len(ls1["transactions"]) != 0:
             jsonToBeWrriten = {}
-            writeTransToCsv(ls1)
+            if (kindOfOutPut == "csv"):
+                writeTransToCsv(ls1)
+            else:
+                writeTransToMySql(ls1,cfg["Output"]["DB"])
+
+
             #print ((ls1["transactions"]));
             with open('transactions/'+ str(startBlockIndex) +'.json', 'w') as outfile:
                 json.dump(ls1, outfile)
@@ -179,7 +286,7 @@ else:
     titleList = ["BlockNumber", "Operations"]
 #    writerAll = None
     alreadyWas = []
-    with open('logs/AllTransaction.csv','w') as f:
+    with open('logs/all_transaction.csv','w') as f:
         writerAll=csv.writer(f)
         writerAll.writerow(titleList)   
     while(startBlockIndex <= endBlockIndex) :
@@ -189,7 +296,10 @@ else:
             with open('transactions/'+ str(startBlockIndex) +'.json') as data_file:    
                   data = json.load(data_file)
                   pprint(data)
-            writeTransToCsv(data)
+            if (kindOfOutPut == "csv"):
+                writeTransToCsv(data)
+            else:
+                writeTransToMySql(data,cfg["Output"]["DB"])
         with open('logs/logFile.log', "a") as logfile:
             logfile.write("Block number "+str(startBlockIndex)+" from directory\n")
         print ("Block number "+str(startBlockIndex)+" from directory\n")
