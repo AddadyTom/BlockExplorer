@@ -1,0 +1,8 @@
+<?php
+$db_host = 'your host';
+$db_user = 'your user';
+$db_pwd = 'your password';
+$database = 'your DB name';
+$howManyToShow = 7;
+//$table = 'your table';
+?>

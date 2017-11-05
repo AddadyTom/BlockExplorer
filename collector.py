@@ -7,12 +7,13 @@ import pymysql.cursors
 from pprint import pprint
 from peerplays import PeerPlays
 from peerplays.block import Block
+from peerplays.exceptions import BlockDoesNotExistsException
+import time
 
-def interpetringJson(data1):
-    pprint(len(data1["transactions"]))
-    pprint((data1["transactions"][0]["operations"][0][1]["from"])) 
-
-
+""" This function is geting data to write to the DB
+and map of the connection details.
+the function writes the data in the DB.
+"""
 def writeTransToMySql(data,connectionDetails):
     connection = pymysql.connect(host=connectionDetails["host"],
             user=connectionDetails["user"],
@@ -20,7 +21,8 @@ def writeTransToMySql(data,connectionDetails):
             db=connectionDetails["db"],
             charset='utf8',
             cursorclass=pymysql.cursors.DictCursor)
-    i = 0 
+    i = 0
+	#goes over the block transactions and inserting them
     for trans in data["transactions"]:
                 dateTime = data['transactions'][i]['expiration']
                 #writing all transactions any way
@@ -29,30 +31,20 @@ def writeTransToMySql(data,connectionDetails):
                         exec("jsonToBeWrriten[param]"+ " = data['transactions'][i]" + cfg["Mapping"]["all_transaction"][param])
                         valuesList.append(ops[int(jsonToBeWrriten['Operations'])])
                 jsonToBeWrriten["blockNumber"] = startBlockIndex 
-                #valuesList.append(jsonToBeWrriten["blockNumber"])
             
                 #writing to data base
                 try:
                     with connection.cursor() as cursor:
                     # Create a new record
-                    #sql= "INSERT INTO `transfer` (`from`, `to`, `asset_id`, `amount`) VALUES (%s, %s, %s, %s)"
                         sql= "INSERT INTO `all_transaction` (`Operations`, `blockNumber`, `time`) VALUES (%s, %s, %s)"
                         cursor.execute(sql, (ops[int(jsonToBeWrriten['Operations'])],startBlockIndex,dateTime))
                         print ("i trien in mysql insertion to all_tracsion done %d" % (i))
                     connection.commit()
                 finally:
-                    stam = 5
-                    #connection.close()
+                    print ("inserted to 'all_transactions");
+					#connection.close()
                
-                """
-                writing to csv
-                with open('logs/all_transaction.csv','a') as f:
-                        writer=csv.writer(f)
-                        pprint (valuesList)
-                        writer.writerow(valuesList)
-                pprint (jsonToBeWrriten[param])
-				"""
-
+                
 
 
 
@@ -68,24 +60,22 @@ def writeTransToMySql(data,connectionDetails):
                         titleList.append(param)
                         exec("valuesList.append("+ "data['transactions'][i]" + cfg["Mapping"][ops[int(jsonToBeWrriten['Operations'])]][param]+")")
                     sql += '`) VALUES (' + toAppend + ')'
-                    print ("sql we will use for spesific:")
-                    print (sql)
+#                    print ("sql we will use for spesific:")      // oppetunity to check the sql.
+#                    print (sql)
                     try:
                         with connection.cursor() as cursor:
                             # Create a new record
-                            #sql= "INSERT INTO `transfer` (`from`, `to`, `asset_id`, `amount`) VALUES (%s, %s, %s, %s)"
                             str1 = "'" + "','".join(map(str, valuesList)) + "'"
-                          #  print (sql)
-                            print ("list of values we will use:")
-                            print (valuesList)
+#                            print ("list of values we will use:") // oppertunity to check the values.
+#                            print (valuesList)
                           #  print (str1)
                             #sys.exit()
                             cursor.execute(sql,(valuesList))
                             print ("insertion in mysql spesific done")
                         connection.commit()
                     finally:
-                        stam = 5
-                        #connection.close()
+                        print("inserted to DB");
+						#connection.close()
 
 
                     """ 
@@ -107,13 +97,9 @@ def writeTransToMySql(data,connectionDetails):
                 i+=1
     connection.close()
     
-
-
-
-
-
-
-
+""" This function is geting data to write to csv file
+the function writes the data in the csv file.
+"""
 
 def writeTransToCsv(data):
     i = 0 
@@ -156,6 +142,10 @@ def writeTransToCsv(data):
  
                     alreadyWas.append(int(jsonToBeWrriten['Operations']))
                 i+=1
+
+"""
+ops is an arrey of possible operations.
+"""
 
 ops = [
         "transfer",  # 0
@@ -244,7 +234,7 @@ if (len(sys.argv) != 4):
 with open("configuration.yml", 'r') as ymlfile:
       cfg = yaml.load(ymlfile)
 kindOfOutPut = cfg["Output"]["DB"]["Type"]#csv or mysql
-
+runUntilTheEnd = False
 #reading the blocks from witness 
 if sys.argv[3] == "witness" or sys.argv[3] == "w":
     ServerNode = PeerPlays(
@@ -255,12 +245,19 @@ if sys.argv[3] == "witness" or sys.argv[3] == "w":
     alreadyWas = []
     startBlockIndex = int(sys.argv[1])
     if (sys.argv[2] == "end"):
-        endBlockIndex = sys.maxint
+       # endBlockIndex = sys.maxint
+       runUntilTheEnd = True
     else:
         endBlockIndex = int(sys.argv[2])
-    while(startBlockIndex <= endBlockIndex) :
-        ls =json.dumps(Block(startBlockIndex,peerplays_instance=ServerNode))
-        ls1 = json.loads(ls);
+    while(startBlockIndex <= endBlockIndex or runUntilTheEnd) :
+        try:
+            ls =json.dumps(Block(startBlockIndex,peerplays_instance=ServerNode))
+            ls1 = json.loads(ls)
+        except BlockDoesNotExistsException:
+            print ("sleeping 10 seconds")
+            time.sleep( 10 )
+            continue
+
         if len(ls1["transactions"]) != 0:
             jsonToBeWrriten = {}
             if (kindOfOutPut == "csv"):
